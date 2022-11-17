@@ -179,9 +179,14 @@ public class EventListener extends ListenerAdapter
     public void onSlashCommandInteraction(SlashCommandInteractionEvent event)
     {
         currentGuild = event.getGuild();
-        String reply = "On it! Joining " + event.getMember().getVoiceState().getChannel().getName();
-        event.reply(reply).setEphemeral(true).queue();
-        joinVoiceChannel(event.getGuild(), (VoiceChannel) event.getMember().getVoiceState().getChannel());
+        
+        if(event.getMember().getVoiceState().getChannel() != null)
+        {
+            String reply = "On it! Joining " + event.getMember().getVoiceState().getChannel().getName();
+            event.reply(reply).setEphemeral(true).queue();
+            joinVoiceChannel(event.getGuild(), (VoiceChannel) event.getMember().getVoiceState().getChannel());
+        }
+        else event.reply("You're not in a voice channel! Join a voice channel to use this command.").setEphemeral(true).queue();
     }
 
     private void joinVoiceChannel(Guild g, VoiceChannel vc)
