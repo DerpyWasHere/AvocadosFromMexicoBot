@@ -20,34 +20,27 @@ import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
 import net.dv8tion.jda.api.interactions.commands.build.Commands;
 import net.dv8tion.jda.api.managers.AudioManager;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 
 public class EventListener extends ListenerAdapter 
 {
-    Guild currentGuild = null;
     private static boolean isEnabled = true;
-    private Config c = null;
-    private Logger l = null;
     private String avocadoURL = null;
     private final String DERPY_ID = "105012641159770112";
 
-    public EventListener()
+    public EventListener(JDA jda_param)
     {
         System.setProperty("log4j.configurationFile", System.getProperty("user.dir") + File.separator + "log4j2.xml");
-        c = Config.getInstance();
-        l = LogManager.getLogger("EventListener");
-        avocadoURL = c.getAvocadosURL();
-        l.info("Using " + avocadoURL + " as avocadoURL");
+        avocadoURL = Config.getInstance().getAvocadosURL();
+        Config.info("EventListener", "Using " + avocadoURL + " as avocadoURL");
     }
 
-    public void disconnect()
+    public void disconnect(Guild guild)
     {
-        if(currentGuild != null)
+        if(guild != null)
         {
-            AudioManager audioManager = currentGuild.getAudioManager();
+            AudioManager audioManager = guild.getAudioManager();
             audioManager.closeAudioConnection();
-            l.info("Leaving " + audioManager.getConnectedChannel());
+            Config.info("EventListener", "Leaving " + audioManager.getConnectedChannel());
         }
     }
     
@@ -58,25 +51,8 @@ public class EventListener extends ListenerAdapter
         switch(args[0])
         {
             case "!avocados" -> {
-                currentGuild = event.getGuild();
-            
                 VoiceChannel vc = (VoiceChannel) event.getMember().getVoiceState().getChannel();
-                AudioManager audioManager = event.getGuild().getAudioManager();
-                audioManager.openAudioConnection(vc);
-                
-                AudioPlayerManager playerManager = new DefaultAudioPlayerManager();
-                AudioSourceManagers.registerRemoteSources(playerManager);
-                AudioPlayer player = playerManager.createPlayer();
-
-                player.addListener(new AudioEventListener(this));
-
-                final TrackScheduler scheduler = new TrackScheduler(player);
-                playerManager.loadItem(avocadoURL, scheduler);
-
-                SendHandler sH = new SendHandler(player);
-                audioManager.setSendingHandler(sH);
-                
-                l.info("Joining " + vc);
+                joinVoiceChannel(event.getGuild(), vc);
             }
             case "!toggle" -> {
                 if(isEnabled)
@@ -98,24 +74,24 @@ public class EventListener extends ListenerAdapter
                         case "url" -> {
                             try
                             {
-                                c.editURL(new URL(args[2]));
-                                avocadoURL = c.getAvocadosURL();
+                                Config.getInstance().editURL(new URL(args[2]));
+                                avocadoURL = Config.getInstance().getAvocadosURL();
                                 event.getChannel().sendMessage("Changed Avocados URL to " + avocadoURL).queue();
                             }
                             catch(MalformedURLException ex)
                             {
-                                l.warn("Invalid URL, please check for any errors in your URL.");
+                                Config.warn("EventListener", "Invalid URL, please check for any errors in your URL.");
                                 event.getChannel().sendMessage("Invalid URL, please check for any errors in your URL.").queue();
                             }
                         }
                         case "dc" -> {
-                            disconnect();
+                            disconnect(event.getGuild());
                         }
                         case "reset_url" -> {
-                            c.defaultURL();
-                            l.info("Reset URL called");
+                            Config.getInstance().defaultURL();
+                            Config.info("EventListener", "Reset URL called");
                             event.getChannel().sendMessage("Resetting Avocados URL").queue();
-                            avocadoURL = c.getAvocadosURL();
+                            avocadoURL = Config.getInstance().getAvocadosURL();
                         }
                         case "help" -> {
                             EmbedBuilder eb = new EmbedBuilder();
@@ -162,7 +138,6 @@ public class EventListener extends ListenerAdapter
                 }
             }
             case "!join" -> {
-                currentGuild = event.getGuild();
                 VoiceChannel vc;
 
                 List<VoiceChannel> possibleVCs = event.getGuild().getVoiceChannelsByName(args[1], true);
@@ -171,15 +146,13 @@ public class EventListener extends ListenerAdapter
                 else
                     vc = possibleVCs.get(0);
 
-                joinVoiceChannel(currentGuild, vc);
+                joinVoiceChannel(event.getGuild(), vc);
             }
         }
     }
     @Override
     public void onSlashCommandInteraction(SlashCommandInteractionEvent event)
     {
-        currentGuild = event.getGuild();
-        
         if(event.getMember().getVoiceState().getChannel() != null)
         {
             String reply = "On it! Joining " + event.getMember().getVoiceState().getChannel().getName();
@@ -198,7 +171,7 @@ public class EventListener extends ListenerAdapter
         AudioSourceManagers.registerRemoteSources(playerManager);
         AudioPlayer player = playerManager.createPlayer();
 
-        player.addListener(new AudioEventListener(this));
+        player.addListener(new AudioEventListener(this, g));
 
         final TrackScheduler scheduler = new TrackScheduler(player);
         playerManager.loadItem(avocadoURL, scheduler);
@@ -206,6 +179,6 @@ public class EventListener extends ListenerAdapter
         SendHandler sH = new SendHandler(player);
         audioManager.setSendingHandler(sH);
         
-        l.info("Joining " + vc);
+        Config.info("EventListener", "Joining " + vc);
     }
 }

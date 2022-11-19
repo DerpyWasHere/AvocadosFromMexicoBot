@@ -9,6 +9,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.util.HashMap;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -25,12 +26,15 @@ public class Config {
     
     // Config variables
     private String avocadoURL = "";
-    private Logger l = null;
+    private Logger config_logger = null;
+
+    // Local Loggers
+    private static HashMap<String, Logger> loggers = new HashMap<>();
     
     private Config()
     {
         System.setProperty("log4j.configurationFile", System.getProperty("user.dir") + File.separator + "log4j2.xml");
-        l = LogManager.getLogger("Config");
+        config_logger = LogManager.getLogger("Config");
         readConfig();
     }
     
@@ -41,6 +45,32 @@ public class Config {
         return config_instance;
     }
     
+    public static void info(String logger_name, String message)
+    {
+        Logger log = null;
+        if(loggers.containsKey(logger_name))
+            log = loggers.get(logger_name);
+        else 
+        {
+            log = LogManager.getLogger(logger_name);
+            loggers.put(logger_name, log);
+        }
+        log.info(message);
+    }
+
+    public static void warn(String logger_name, String message)
+    {
+        Logger log = null;
+        if(loggers.containsKey(logger_name))
+            log = loggers.get(logger_name);
+        else
+        {
+            log = LogManager.getLogger(logger_name);
+            loggers.put(logger_name, log);
+        }
+        log.warn(message);
+    }
+
     public String getAvocadosURL()
     {
         return avocadoURL;
@@ -48,7 +78,7 @@ public class Config {
     
     private void readConfig()
     {
-        l.info("Reading config");
+        config_logger.info("Reading config");
         FileReader fr = null;
         BufferedReader br = null;
         try
@@ -65,16 +95,16 @@ public class Config {
         }
         catch(FileNotFoundException ex)
         {
-            l.warn("Config could not be read, using default URL");
+            config_logger.warn("Config could not be read, using default URL");
             avocadoURL = DEFAULT_URL;
             
-            l.warn("Generating config");
+            config_logger.warn("Generating config");
             // Writing new default config
             generateConfig();
         }
         catch(IOException ex)
         {
-            l.info(ex.getMessage());
+            config_logger.info(ex.getMessage());
         }
         finally
         {
@@ -85,18 +115,18 @@ public class Config {
             }
             catch(IOException ex)
             {
-                l.warn(ex.getMessage());
+                config_logger.warn(ex.getMessage());
             }
             catch(NullPointerException ex)
             {
-                l.warn(ex.getMessage());
+                config_logger.warn(ex.getMessage());
             }
         }
     }
     
     private void generateConfig()
     {
-        l.info("Generating config");
+        config_logger.info("Generating config");
         File f = new File("config.ini");
         FileWriter fw = null;
         BufferedWriter bw = null;
@@ -110,8 +140,8 @@ public class Config {
         }
         catch(IOException ex)
         {
-            l.warn("Unable to create file");
-            l.warn(ex.getMessage());
+            config_logger.warn("Unable to create file");
+            config_logger.warn(ex.getMessage());
         }
         finally
         {
@@ -122,7 +152,7 @@ public class Config {
             }
             catch(IOException ex)
             {
-                l.warn(ex.getMessage());
+                config_logger.warn(ex.getMessage());
             }
         }
     }
@@ -130,7 +160,7 @@ public class Config {
     public void editURL(URL url)
     {
         avocadoURL = url.toString();
-        l.info("Changing avocadoURL to " + avocadoURL);
+        config_logger.info("Changing avocadoURL to " + avocadoURL);
         generateConfig();
     }
     
@@ -142,7 +172,7 @@ public class Config {
         }
         catch(MalformedURLException ex)
         {
-            l.info("Default URL corrupted/invalid");
+            config_logger.info("Default URL corrupted/invalid");
         }
     }
 }

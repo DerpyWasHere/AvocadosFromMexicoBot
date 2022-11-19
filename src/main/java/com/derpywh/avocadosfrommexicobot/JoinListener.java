@@ -10,8 +10,6 @@ import net.dv8tion.jda.api.entities.channel.concrete.VoiceChannel;
 import net.dv8tion.jda.api.events.guild.voice.GuildVoiceUpdateEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
 import net.dv8tion.jda.api.managers.AudioManager;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 
 /**
  * Handles the joining/leaving function of the bot
@@ -20,30 +18,25 @@ import org.apache.logging.log4j.Logger;
 
 public class JoinListener extends ListenerAdapter
 {
-    Guild currentGuild = null;
     private static boolean isEnabled = true;
-    private Config c = null;
-    private Logger l = null;
     private String avocadoURL = null;
     private final String TIGER_ID = "118128252081537026";
     
     public JoinListener()
     {
         System.setProperty("log4j.configurationFile", System.getProperty("user.dir") + File.separator + "log4j2.xml");
-        c = Config.getInstance();
-        l = LogManager.getLogger("JoinListener");
-        avocadoURL = c.getAvocadosURL();
-        l.info("Using " + avocadoURL + " as avocadoURL");
+        avocadoURL = Config.getInstance().getAvocadosURL();
+        Config.info("JoinListener", "Using " + avocadoURL + " as avocadoURL");
     }
     
     
-    public void disconnect()
+    public void disconnect(Guild guild)
     {
-        if(currentGuild != null)
+        if(guild != null)
         {
-            AudioManager audioManager = currentGuild.getAudioManager();
+            AudioManager audioManager = guild.getAudioManager();
             audioManager.closeAudioConnection();
-            l.info("Leaving " + audioManager.getConnectedChannel());
+            Config.info("JoinListener", "Leaving " + audioManager.getConnectedChannel());
         }
     }
 
@@ -68,25 +61,7 @@ public class JoinListener extends ListenerAdapter
                     .queue();
             if(isEnabled)
             {
-                currentGuild = event.getGuild();
-
-                VoiceChannel vc = (VoiceChannel) event.getMember().getVoiceState().getChannel();
-                AudioManager audioManager = event.getGuild().getAudioManager();
-                audioManager.openAudioConnection(vc);
-
-                AudioPlayerManager playerManager = new DefaultAudioPlayerManager();
-                AudioSourceManagers.registerRemoteSources(playerManager);
-                AudioPlayer player = playerManager.createPlayer();
-
-                player.addListener(new AudioEventListener(this));
-
-                final TrackScheduler scheduler = new TrackScheduler(player);
-                playerManager.loadItem(avocadoURL, scheduler);
-
-                SendHandler sH = new SendHandler(player);
-                audioManager.setSendingHandler(sH);
-                
-                l.info("Joining " + vc);
+                joinVoiceChannel(event.getGuild(), (VoiceChannel) event.getVoiceState().getChannel());
             }
         }
         
@@ -103,25 +78,7 @@ public class JoinListener extends ListenerAdapter
             
             if(isEnabled)
             {
-                currentGuild = event.getGuild();
-
-                VoiceChannel vc = (VoiceChannel) event.getMember().getVoiceState().getChannel();
-                AudioManager audioManager = event.getGuild().getAudioManager();
-                audioManager.openAudioConnection(vc);
-
-                AudioPlayerManager playerManager = new DefaultAudioPlayerManager();
-                AudioSourceManagers.registerRemoteSources(playerManager);
-                AudioPlayer player = playerManager.createPlayer();
-
-                player.addListener(new AudioEventListener(this));
-
-                final TrackScheduler scheduler = new TrackScheduler(player);
-                playerManager.loadItem(avocadoURL, scheduler);
-
-                SendHandler sH = new SendHandler(player);
-                audioManager.setSendingHandler(sH);
-                
-                l.info("Joining " + vc);
+                joinVoiceChannel(event.getGuild(), (VoiceChannel) event.getMember().getVoiceState().getChannel());
             }
         }
     }
@@ -134,5 +91,25 @@ public class JoinListener extends ListenerAdapter
                     .flatMap(ch -> ch.sendMessage("Avocados :avocado: from Mexico :flag_mx:"))
                     .queue();
         }
+    }
+
+    private void joinVoiceChannel(Guild g, VoiceChannel vc)
+    {
+        AudioManager audioManager = g.getAudioManager();
+        audioManager.openAudioConnection(vc);
+        
+        AudioPlayerManager playerManager = new DefaultAudioPlayerManager();
+        AudioSourceManagers.registerRemoteSources(playerManager);
+        AudioPlayer player = playerManager.createPlayer();
+
+        player.addListener(new AudioEventListener(this, g));
+
+        final TrackScheduler scheduler = new TrackScheduler(player);
+        playerManager.loadItem(avocadoURL, scheduler);
+
+        SendHandler sH = new SendHandler(player);
+        audioManager.setSendingHandler(sH);
+        
+        Config.info("EventListener", "Joining " + vc);
     }
 }

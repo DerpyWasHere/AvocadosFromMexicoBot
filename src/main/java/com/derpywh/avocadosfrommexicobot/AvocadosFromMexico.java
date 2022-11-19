@@ -17,7 +17,7 @@ public class AvocadosFromMexico
             builder.enableIntents(GatewayIntent.MESSAGE_CONTENT);
             JDA jda = builder.build();
             jda.addEventListener(new JoinListener());
-            jda.addEventListener(new EventListener());
+            jda.addEventListener(new EventListener(jda));
             jda.awaitReady();
         }
         catch(InterruptedException interruptedEx)
