@@ -19,7 +19,7 @@ import org.apache.logging.log4j.Logger;
  */
 public class Config {
     // Constants
-    final String DEFAULT_URL = "https://www.youtube.com/watch?v=xgTiKlwB-Uk";
+    final String DEFAULT_URL = "https://derpywashere.s-ul.eu/Jej8TRGC";
     
     // Singleton instance
     private static Config config_instance = null;
